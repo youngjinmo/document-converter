@@ -1,0 +1,20 @@
+.DS_Store
+.venv/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Generated deliverables and QA artifacts
+output/
+generated/
+fixtures/
+qa/
+native_render/
+source_render/
+quicklook/
+page*_ocr.tsv
+*.ocr.pdf
+*.docx
+*.pdf
