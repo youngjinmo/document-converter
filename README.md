@@ -1,0 +1,104 @@
+# Document Converter
+
+Convert a local PDF into an editable DOCX with optional Korean and English OCR.
+Documents never leave your computer and their text is never logged.
+
+## License notice before installation
+
+This repository's code is MIT licensed. The conversion dependency chain uses
+PyMuPDF through `pdf2docx`; PyMuPDF is AGPL-licensed unless you obtain its
+commercial license. Review [PyMuPDF licensing](https://github.com/pymupdf/PyMuPDF)
+before redistributing a combined application. Details are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Quick start with Docker
+
+Docker is the recommended option because it includes Tesseract, Korean/English
+language data, and CJK fonts.
+
+```sh
+git clone <repository-url> document-convert
+cd document-convert
+./run.sh input.pdf output.docx
+```
+
+The input directory is mounted read-only. Only the output directory is writable
+inside the container.
+
+## CLI
+
+```sh
+document-convert INPUT.pdf [-o OUTPUT.docx]
+```
+
+Options:
+
+- `--lang kor+eng` sets OCR languages (the default is `kor+eng`).
+- `--no-ocr` skips OCR for PDFs that already have reliable text.
+- `--overwrite` replaces an existing output file.
+- `--timeout 300` sets the per-stage time limit in seconds.
+
+The conversion first runs OCRmyPDF with `--skip-text`, preserving text pages,
+then runs `pdf2docx`. A temporary DOCX is checked as OOXML and has author,
+title, company, and custom document properties cleared before it replaces the
+requested output.
+
+## Run without Docker
+
+Install Python 3.11+ and Tesseract with Korean and English language data, then:
+
+```sh
+python -m venv .venv
+. .venv/bin/activate
+pip install -e '.[ocr]'
+document-convert input.pdf -o output.docx
+```
+
+- macOS: `brew install tesseract tesseract-lang`
+- Ubuntu/WSL: `sudo apt install tesseract-ocr tesseract-ocr-kor tesseract-ocr-eng ghostscript qpdf`
+- Windows: install Tesseract with `kor` and `eng` data and Ghostscript, then
+  add both installation directories to `PATH`. Use PowerShell to activate the
+  virtual environment and run the same `pip`/CLI commands.
+
+For other languages, install the corresponding Tesseract `traineddata` file
+and pass its language code with `--lang`, for example `--lang deu+eng`.
+
+## Limitations and troubleshooting
+
+PDF is a fixed-layout format. Complex columns, unusual fonts, tables, shapes,
+and handwriting may need manual DOCX cleanup. OCR quality depends on scan
+resolution and source language. Use `--no-ocr` for clean digital PDFs.
+
+If conversion reports a missing language, install its Tesseract language data.
+If it times out, use a smaller PDF, increase `--timeout`, or use Docker to
+ensure local dependencies are available. Password-protected or damaged PDFs
+are rejected without modifying an existing output file.
+
+`requirements.lock` contains fully pinned transitive constraints captured for
+the Python 3.12 Linux Docker target. It is not hash-locked or cross-platform:
+native wheels differ by operating system and Python version. Use Docker for the
+most repeatable runtime.
+The requested newer `pdf2docx`, PyMuPDF, and OCRmyPDF versions were not
+available from the configured package index, so the lock uses the newest
+resolvable releases from that index instead; PyMuPDF is pinned to the
+empirically compatible `1.25.5` release.
+
+The CI Docker smoke test generates synthetic digital, scanned, and mixed PDFs
+and verifies that both English and Korean text remain editable in each DOCX.
+
+## Privacy when contributing
+
+Never commit real source documents, OCR exports, rendered pages, or contact details.
+Use synthetic fixtures only. Run `python scripts/privacy_scan.py` before
+publishing changes; see [CONTRIBUTING.md](CONTRIBUTING.md) and
+[SECURITY.md](SECURITY.md).
+
+For a private pre-publication check, supply organization-specific terms only at
+runtime: `DOCUMENT_CONVERT_FORBIDDEN_TERMS='term-one,term-two' python
+scripts/privacy_scan.py`. The values are not stored by this repository.
+
+Before publishing, create the repository secret
+`DOCUMENT_CONVERT_FORBIDDEN_TERMS` with comma-separated former names or account
+identifiers. CI injects it only when GitHub makes secrets available. Fork pull
+requests do not receive repository secrets, but generic email, binary, and
+artifact checks still run.

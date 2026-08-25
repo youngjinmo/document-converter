@@ -1,0 +1,31 @@
+# Fully pinned runtime constraints captured from the supported Python 3.12
+# environment. Native wheel hashes are deliberately omitted because Docker
+# resolves Linux wheels while contributors may use macOS or Windows.
+cffi==2.1.1
+charset-normalizer==3.5.1
+cryptography==50.0.0
+deprecation==2.1.0
+fire==0.7.1
+fonttools==4.63.0
+img2pdf==0.6.3
+lxml==6.1.2
+markdown-it-py==4.2.0
+mdurl==0.1.2
+numpy==2.2.6
+ocrmypdf==15.4.4
+opencv-python-headless==4.11.0.86
+packaging==26.3
+pdf2docx==0.5.8
+pdfminer.six==20260107
+pikepdf==10.12.0
+pillow==11.3.0
+pluggy==1.6.0
+pycparser==3.0
+pygments==2.21.0
+pymupdf==1.25.5
+pypdf==5.9.0
+python-docx==1.2.0
+reportlab==5.0.1
+rich==15.0.0
+termcolor==3.3.0
+typing-extensions==4.16.0
