@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[test]'
+      - run: python scripts/privacy_scan.py
+        env:
+          DOCUMENT_CONVERT_FORBIDDEN_TERMS: ${{ secrets.DOCUMENT_CONVERT_FORBIDDEN_TERMS }}
+      - run: python -m pytest -q
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t document-convert:ci .
+      - run: mkdir -p fixtures generated
+      - run: docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp --read-only --tmpfs /tmp:rw,noexec,nosuid,size=512m -v "$PWD/fixtures:/fixtures" --entrypoint python document-convert:ci scripts/create_fixtures.py /fixtures
+      - run: docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp --network none --cap-drop ALL --security-opt no-new-privileges:true --read-only --tmpfs /tmp:rw,noexec,nosuid,size=512m --pids-limit 256 --memory 2g --cpus 2 -v "$PWD/fixtures:/input:ro" -v "$PWD/generated:/output" document-convert:ci /input/digital.pdf -o /output/digital.docx --no-ocr
+      - run: docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp --network none --cap-drop ALL --security-opt no-new-privileges:true --read-only --tmpfs /tmp:rw,noexec,nosuid,size=512m --pids-limit 256 --memory 2g --cpus 2 -v "$PWD/fixtures:/input:ro" -v "$PWD/generated:/output" document-convert:ci /input/scanned.pdf -o /output/scanned.docx
+      - run: docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp --network none --cap-drop ALL --security-opt no-new-privileges:true --read-only --tmpfs /tmp:rw,noexec,nosuid,size=512m --pids-limit 256 --memory 2g --cpus 2 -v "$PWD/fixtures:/input:ro" -v "$PWD/generated:/output" document-convert:ci /input/mixed.pdf -o /output/mixed.docx
+      - run: python -m pip install -e .
+      - run: python scripts/validate_docx.py generated/digital.docx --contains Synthetic --contains 테스트
+      - run: python scripts/validate_docx.py generated/scanned.docx --contains Synthetic --contains 테스트
+      - run: python scripts/validate_docx.py generated/mixed.docx --contains Synthetic --contains 테스트
