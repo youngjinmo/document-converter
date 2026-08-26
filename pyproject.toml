@@ -5,7 +5,7 @@ build-backend = 'setuptools.build_meta'
 [project]
 name = 'document-convert'
 version = '0.1.0'
-description = 'Local PDF to editable DOCX conversion with optional OCR.'
+description = 'Document Converter: local PDF to DOCX or Markdown conversion with optional OCR.'
 readme = 'README.md'
 requires-python = '>=3.11'
 license = {text = 'MIT'}
@@ -21,7 +21,7 @@ ocr = ['ocrmypdf==15.4.4']
 test = ['pytest==8.4.1']
 
 [project.scripts]
-document-convert = 'document_convert.cli:main'
+dc = 'document_convert.cli:main'
 
 [tool.setuptools]
 package-dir = {'' = 'src'}

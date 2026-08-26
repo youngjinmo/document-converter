@@ -18,4 +18,4 @@ RUN pip install --no-cache-dir --no-deps . \
     && useradd --create-home --uid 10001 converter
 
 USER converter
-ENTRYPOINT ["document-convert"]
+ENTRYPOINT ["dc"]

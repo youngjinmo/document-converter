@@ -2,28 +2,37 @@
 set -eu
 
 if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
-  echo "Usage: ./run.sh INPUT.pdf [OUTPUT.docx]" >&2
+  echo "Usage: ./run.sh INPUT.pdf [OUTPUT.docx|OUTPUT.md]" >&2
   exit 2
 fi
 
 input=$1
-case "$input" in
-  *.pdf|*.PDF) ;;
-  *) echo "Input must be a PDF file." >&2; exit 2 ;;
-esac
+input_extension=$(printf '%s' "${input##*.}" | tr '[:upper:]' '[:lower:]')
+if [ "$input_extension" != pdf ]; then
+  echo "Input must be a PDF file." >&2
+  exit 2
+fi
 if [ ! -f "$input" ]; then
   echo "Input PDF does not exist." >&2
   exit 2
 fi
 
 if [ "$#" -eq 2 ]; then output=$2; else output="${input%.*}.docx"; fi
-case "$output" in
-  *.docx|*.DOCX) ;;
-  *) echo "Output must use the .docx extension." >&2; exit 2 ;;
-esac
+output_extension=$(printf '%s' "${output##*.}" | tr '[:upper:]' '[:lower:]')
+if [ "$output_extension" != docx ] && [ "$output_extension" != md ]; then
+  echo "Output must use the .docx or .md extension." >&2
+  exit 2
+fi
 if [ -e "$output" ]; then
   echo "Output already exists; choose another path." >&2
   exit 2
+fi
+if [ "$output_extension" = md ]; then
+  assets_path="${output%.*}_assets"
+  if [ -e "$assets_path" ]; then
+    echo "Output assets already exist; choose another path." >&2
+    exit 2
+  fi
 fi
 
 input_dir=$(cd "$(dirname "$input")" && pwd)
@@ -53,6 +62,30 @@ docker run --rm \
   document-convert:local \
   "/input/$input_name" -o "/output/$output_name"
 
+assets_name="${output_name%.*}_assets"
+assets_destination="$output_dir/$assets_name"
+if [ "$output_extension" = md ] && [ -d "$stage_dir/$assets_name" ]; then
+  if ! mkdir "$assets_destination"; then
+    echo "Output assets already exist; conversion result was not published." >&2
+    exit 2
+  fi
+  if ! mv "$stage_dir/$assets_name"/* "$assets_destination"/; then
+    rm -rf "$assets_destination"
+    echo "Output assets could not be published; conversion result was not published." >&2
+    exit 2
+  fi
+  if ! ln "$stage_dir/$output_name" "$output_dir/$output_name"; then
+    rm -rf "$assets_destination"
+    echo "Output already exists; conversion result was not published." >&2
+    exit 2
+  fi
+  exit 0
+fi
+
+if [ "$output_extension" = md ] && [ -e "$assets_destination" ]; then
+  echo "Output assets already exist; conversion result was not published." >&2
+  exit 2
+fi
 if ! ln "$stage_dir/$output_name" "$output_dir/$output_name"; then
   echo "Output already exists; conversion result was not published." >&2
   exit 2

@@ -80,6 +80,33 @@ def test_기본값은_kor_eng_ocr과_300초다(pdf_file, output_file, monkeypatc
     assert received["timeout"] == 300
 
 
+def test_markdown_출력확장자를_허용하고_변환기에_전달한다(pdf_file, tmp_path, monkeypatch):
+    output = tmp_path / "result.md"
+    received = {}
+
+    def fake_convert(source, target, **kwargs):
+        received.update(kwargs)
+        target.write_text("# converted", encoding="utf-8")
+
+    monkeypatch.setattr("document_convert.cli.convert", fake_convert)
+
+    assert invoke([str(pdf_file), "-o", str(output)], monkeypatch) == 0
+    assert output.read_text(encoding="utf-8") == "# converted"
+    assert received["overwrite"] is False
+
+
+def test_출력확장자는_대소문자를_구분하지_않는다(pdf_file, tmp_path, monkeypatch):
+    for suffix in (".MD", ".DOCX"):
+        output = tmp_path / f"result{suffix}"
+        monkeypatch.setattr(
+            "document_convert.cli.convert",
+            lambda source, target, **kwargs: target.write_text("ok", encoding="utf-8"),
+        )
+
+        assert invoke([str(pdf_file), "-o", str(output)], monkeypatch) == 0
+        assert output.exists()
+
+
 def test_no_ocr_플래그를_변환기에_전달한다(pdf_file, output_file, monkeypatch):
     received = {}
     monkeypatch.setattr(
@@ -91,11 +118,21 @@ def test_no_ocr_플래그를_변환기에_전달한다(pdf_file, output_file, mo
     assert received["no_ocr"] is True
 
 
-@pytest.mark.parametrize("output_name", ["result.pdf", "result", "result.DOC"])
-def test_docx가_아닌_출력확장자는_거부한다(pdf_file, tmp_path, output_name, monkeypatch):
+@pytest.mark.parametrize("output_name", ["result.pdf", "result", "result.DOC", "result.html"])
+def test_지원하지_않는_출력확장자는_거부한다(pdf_file, tmp_path, output_name, monkeypatch):
     monkeypatch.setattr("document_convert.cli.convert", lambda *args, **kwargs: pytest.fail("변환하면 안 됨"))
 
     assert invoke([str(pdf_file), "-o", str(tmp_path / output_name)], monkeypatch) == 2
+
+
+def test_도움말에_애플리케이션명과_dc_사용법이_표시된다(monkeypatch, capsys):
+    with pytest.raises(SystemExit) as error:
+        invoke(["--help"], monkeypatch)
+
+    assert error.value.code == 0
+    help_text = capsys.readouterr().out
+    assert "Document Converter" in help_text
+    assert "dc INPUT.pdf" in help_text
 
 
 def test_입력과_출력경로가_같으면_변환하지않는다(pdf_file, monkeypatch):

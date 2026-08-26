@@ -1,6 +1,6 @@
 # Document Converter
 
-Convert a local PDF into an editable DOCX with optional Korean and English OCR.
+Convert a local PDF into an editable DOCX or Markdown file with optional Korean and English OCR.
 Documents never leave your computer and their text is never logged.
 
 ## License notice before installation
@@ -19,7 +19,7 @@ language data, and CJK fonts.
 ```sh
 git clone <repository-url> document-convert
 cd document-convert
-./run.sh input.pdf output.docx
+./run.sh input.pdf output.md
 ```
 
 The input directory is mounted read-only. Only the output directory is writable
@@ -28,20 +28,21 @@ inside the container.
 ## CLI
 
 ```sh
-document-convert INPUT.pdf [-o OUTPUT.docx]
+dc INPUT.pdf [-o OUTPUT.docx|OUTPUT.md]
 ```
 
 Options:
 
 - `--lang kor+eng` sets OCR languages (the default is `kor+eng`).
 - `--no-ocr` skips OCR for PDFs that already have reliable text.
-- `--overwrite` replaces an existing output file.
+- `--overwrite` replaces an existing output file (and Markdown assets directory).
 - `--timeout 300` sets the per-stage time limit in seconds.
 
-The conversion first runs OCRmyPDF with `--skip-text`, preserving text pages,
-then runs `pdf2docx`. A temporary DOCX is checked as OOXML and has author,
-title, company, and custom document properties cleared before it replaces the
-requested output.
+The conversion first runs OCRmyPDF with `--skip-text`, preserving text pages.
+DOCX output then runs through `pdf2docx` and is checked as OOXML with author,
+title, company, and custom document properties cleared. Markdown output uses
+local PyMuPDF text, table, and image extraction; images are written beside the
+document in `<output>_assets/` and linked with relative paths.
 
 ## Run without Docker
 
@@ -51,7 +52,7 @@ Install Python 3.11+ and Tesseract with Korean and English language data, then:
 python -m venv .venv
 . .venv/bin/activate
 pip install -e '.[ocr]'
-document-convert input.pdf -o output.docx
+dc input.pdf -o output.docx
 ```
 
 - macOS: `brew install tesseract tesseract-lang`
