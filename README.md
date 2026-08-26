@@ -1,5 +1,7 @@
 # Document Converter
 
+[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md)
+
 Convert a local PDF into an editable DOCX or Markdown file with optional Korean and English OCR.
 Documents never leave your computer and their text is never logged.
 
