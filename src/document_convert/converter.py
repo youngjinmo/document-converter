@@ -1,4 +1,4 @@
-"""PDF-to-DOCX conversion pipeline. All processing remains on the local machine."""
+"""PDF conversion pipeline. All processing remains on the local machine."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from pypdf import PdfReader
 
 from .docx_privacy import InvalidDocxError, scrub_and_validate
 from .errors import ConversionError, ConversionTimeoutError, EncryptedPdfError, InvalidPdfError, MissingLanguageError
+from .markdown import render as render_markdown
 
 
 def convert(
@@ -24,7 +25,7 @@ def convert(
     overwrite: bool = False,
     timeout: int = 300,
 ) -> None:
-    """Convert *source* to *target*, replacing the target only after success."""
+    """Convert *source* to DOCX or Markdown, publishing only after success."""
     source = Path(source)
     target = Path(target)
     _validate_output_path(source, target, overwrite)
@@ -42,12 +43,15 @@ def convert(
             run_ocr(source, ocr_pdf, lang=lang, timeout=timeout)
             input_pdf = ocr_pdf
 
-        converted_docx = _temporary_file(target.parent, target.stem, '.docx')
-        cleaned_docx = _temporary_file(target.parent, target.stem, '.docx')
-        temporary_paths.extend([converted_docx, cleaned_docx])
-        run_pdf2docx(input_pdf, converted_docx, timeout=timeout)
-        scrub_and_validate(converted_docx, cleaned_docx)
-        _publish_output(cleaned_docx, target, overwrite)
+        if target.suffix.lower() == '.md':
+            _convert_markdown(input_pdf, target, overwrite)
+        else:
+            converted_docx = _temporary_file(target.parent, target.stem, '.docx')
+            cleaned_docx = _temporary_file(target.parent, target.stem, '.docx')
+            temporary_paths.extend([converted_docx, cleaned_docx])
+            run_pdf2docx(input_pdf, converted_docx, timeout=timeout)
+            scrub_and_validate(converted_docx, cleaned_docx)
+            _publish_output(cleaned_docx, target, overwrite)
     except MissingLanguageError:
         raise
     except (subprocess.TimeoutExpired, TimeoutError) as error:
@@ -138,12 +142,16 @@ def _validate_output_path(source: Path, target: Path, overwrite: bool) -> None:
             raise ConversionError('Input and output paths cannot be identical.')
     except OSError as error:
         raise ConversionError('Unable to resolve input or output paths.') from error
-    if target.suffix.lower() != '.docx':
-        raise ConversionError('Output must use the .docx extension.')
+    if target.suffix.lower() not in {'.docx', '.md'}:
+        raise ConversionError('Output must use the .docx or .md extension.')
     if not target.parent.is_dir():
         raise ConversionError('Output directory does not exist.')
     if target.exists() and not overwrite:
         raise ConversionError('Output already exists; use overwrite=True to replace it.')
+    if target.suffix.lower() == '.md':
+        assets = _assets_path(target)
+        if assets.exists() and not overwrite:
+            raise ConversionError('Output assets already exist; use overwrite=True to replace them.')
 
 
 def _publish_output(temporary: Path, target: Path, overwrite: bool) -> None:
@@ -156,6 +164,94 @@ def _publish_output(temporary: Path, target: Path, overwrite: bool) -> None:
         raise ConversionError('Output already exists; use overwrite=True to replace it.') from error
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def _convert_markdown(source: Path, target: Path, overwrite: bool) -> None:
+    with tempfile.TemporaryDirectory(dir=target.parent, prefix=f'.{target.stem}.markdown.') as directory:
+        stage = Path(directory)
+        staged_markdown = stage / target.name
+        staged_assets = stage / _assets_path(target).name
+        has_images = render_markdown(source, staged_markdown, staged_assets)
+        _validate_markdown(staged_markdown, staged_assets, has_images)
+        _publish_markdown(staged_markdown, staged_assets if has_images else None, target, overwrite)
+
+
+def _validate_markdown(markdown: Path, assets: Path, has_images: bool) -> None:
+    if not markdown.is_file():
+        raise ConversionError('Generated Markdown is missing.')
+    markdown.read_text(encoding='utf-8')
+    if has_images and not assets.is_dir():
+        raise ConversionError('Generated Markdown assets are missing.')
+
+
+def _assets_path(target: Path) -> Path:
+    return target.with_name(f'{target.stem}_assets')
+
+
+def _publish_markdown(staged_markdown: Path, staged_assets: Path | None, target: Path, overwrite: bool) -> None:
+    assets = _assets_path(target)
+    if not overwrite:
+        if assets.exists():
+            raise ConversionError('Output assets already exist; use overwrite=True to replace them.')
+        if staged_assets is not None:
+            reserved_assets = False
+            try:
+                assets.mkdir()
+                reserved_assets = True
+                _move_assets(staged_assets, assets)
+                _publish_output(staged_markdown, target, False)
+            except OSError as error:
+                if reserved_assets:
+                    _remove_path(assets)
+                raise ConversionError('Unable to publish Markdown assets.') from error
+            return
+        if assets.exists():
+            raise ConversionError('Output assets already exist; use overwrite=True to replace them.')
+        _publish_output(staged_markdown, target, False)
+        if assets.exists():
+            target.unlink(missing_ok=True)
+            raise ConversionError('Output assets already exist; Markdown output was not published.')
+        return
+
+    backups: list[tuple[Path, Path]] = []
+    published: list[Path] = []
+    try:
+        for existing in (target, assets):
+            if existing.exists():
+                backup = _temporary_file(existing.parent, f'{existing.name}.backup', '')
+                backup.unlink()
+                os.replace(existing, backup)
+                backups.append((existing, backup))
+        os.replace(staged_markdown, target)
+        published.append(target)
+        if staged_assets is not None:
+            os.replace(staged_assets, assets)
+            published.append(assets)
+    except OSError as error:
+        for path in reversed(published):
+            _remove_path(path)
+        for original, backup in reversed(backups):
+            if backup.exists():
+                os.replace(backup, original)
+        raise ConversionError('Unable to publish Markdown output.') from error
+
+    try:
+        for _, backup in backups:
+            _remove_path(backup)
+    except OSError as error:
+        raise ConversionError('Markdown output was published, but old output cleanup failed.') from error
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    else:
+        path.unlink(missing_ok=True)
+
+
+def _move_assets(source: Path, destination: Path) -> None:
+    for asset in source.iterdir():
+        shutil.move(str(asset), destination / asset.name)
 
 
 def _temporary_file(directory: Path, stem: str, suffix: str) -> Path:

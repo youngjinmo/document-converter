@@ -1,4 +1,4 @@
-"""Local PDF to DOCX conversion utilities."""
+"""Document Converter utilities for local PDF conversion."""
 
 from .converter import convert
 
