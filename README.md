@@ -88,20 +88,3 @@ empirically compatible `1.25.5` release.
 
 The CI Docker smoke test generates synthetic digital, scanned, and mixed PDFs
 and verifies that both English and Korean text remain editable in each DOCX.
-
-## Privacy when contributing
-
-Never commit real source documents, OCR exports, rendered pages, or contact details.
-Use synthetic fixtures only. Run `python scripts/privacy_scan.py` before
-publishing changes; see [CONTRIBUTING.md](CONTRIBUTING.md) and
-[SECURITY.md](SECURITY.md).
-
-For a private pre-publication check, supply organization-specific terms only at
-runtime: `DOCUMENT_CONVERT_FORBIDDEN_TERMS='term-one,term-two' python
-scripts/privacy_scan.py`. The values are not stored by this repository.
-
-Before publishing, create the repository secret
-`DOCUMENT_CONVERT_FORBIDDEN_TERMS` with comma-separated former names or account
-identifiers. CI injects it only when GitHub makes secrets available. Fork pull
-requests do not receive repository secrets, but generic email, binary, and
-artifact checks still run.

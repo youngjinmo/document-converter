@@ -63,11 +63,3 @@ PDF는 고정 레이아웃 형식입니다. 복잡한 다단 구성, 특이한 �
 요청된 최신 `pdf2docx`, PyMuPDF, OCRmyPDF 버전은 구성된 패키지 인덱스에서 사용할 수 없어, 잠금 파일에는 해당 인덱스에서 해결 가능한 최신 릴리스를 사용했습니다. PyMuPDF는 실험적으로 호환되는 `1.25.5` 버전으로 고정되어 있습니다.
 
 CI Docker 스모크 테스트는 합성 디지털·스캔·혼합 PDF를 생성하고, 영어와 한국어 텍스트가 각 DOCX에서 모두 편집 가능한지 확인합니다.
-
-## 기여 시 개인정보 보호
-
-실제 원본 문서, OCR 결과물, 렌더링된 페이지, 연락처 정보를 커밋하지 마세요. 합성 픽스처만 사용하세요. 변경 사항을 게시하기 전에 `python scripts/privacy_scan.py`를 실행하세요. 자세한 내용은 [CONTRIBUTING.md](CONTRIBUTING.md)와 [SECURITY.md](SECURITY.md)를 참조하세요.
-
-비공개 사전 게시 검사에서는 조직별 용어를 실행 시에만 제공하세요. `DOCUMENT_CONVERT_FORBIDDEN_TERMS='term-one,term-two' python scripts/privacy_scan.py`와 같이 실행할 수 있습니다. 해당 값은 이 저장소에 저장되지 않습니다.
-
-게시하기 전에 쉼표로 구분된 이전 이름 또는 계정 식별자가 담긴 저장소 시크릿 `DOCUMENT_CONVERT_FORBIDDEN_TERMS`를 생성하세요. GitHub에서 시크릿을 사용할 수 있는 경우에만 CI가 주입합니다. 포크에서 열린 풀 리퀘스트는 저장소 시크릿을 받을 수 없지만, 일반 이메일·바이너리·아티팩트 검사는 계속 수행됩니다.

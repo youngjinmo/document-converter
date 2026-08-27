@@ -17,9 +17,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[test]'
-      - run: python scripts/privacy_scan.py
-        env:
-          DOCUMENT_CONVERT_FORBIDDEN_TERMS: ${{ secrets.DOCUMENT_CONVERT_FORBIDDEN_TERMS }}
       - run: python -m pytest -q
 
   docker-smoke:

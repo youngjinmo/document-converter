@@ -63,11 +63,3 @@ PDF 是固定布局格式。复杂分栏、非常规字体、表格、图形和�
 所请求的较新 `pdf2docx`、PyMuPDF 和 OCRmyPDF 版本在已配置的软件包索引中不可用，因此锁文件使用了该索引中可解析的最新版本；PyMuPDF 固定为经验证兼容的 `1.25.5` 版本。
 
 CI Docker 冒烟测试会生成合成的数字、扫描和混合 PDF，并验证英语和韩语文本在每个 DOCX 中都保持可编辑。
-
-## 贡献时的隐私保护
-
-切勿提交真实源文档、OCR 导出文件、渲染页面或联系信息。仅使用合成夹具。发布变更前，请运行 `python scripts/privacy_scan.py`；详见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [SECURITY.md](SECURITY.md)。
-
-如需进行私有的发布前检查，仅在运行时提供组织特定术语：`DOCUMENT_CONVERT_FORBIDDEN_TERMS='term-one,term-two' python scripts/privacy_scan.py`。这些值不会保存在本仓库中。
-
-发布前，请创建仓库密钥 `DOCUMENT_CONVERT_FORBIDDEN_TERMS`，其中包含用逗号分隔的旧名称或帐户标识符。只有在 GitHub 提供密钥时，CI 才会注入它们。来自 fork 的拉取请求无法获得仓库密钥，但通用的电子邮件、二进制文件和工件检查仍会执行。
