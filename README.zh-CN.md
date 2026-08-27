@@ -59,7 +59,6 @@ PDF 是固定布局格式。复杂分栏、非常规字体、表格、图形和�
 
 如果转换报告缺少语言，请安装相应的 Tesseract 语言数据。若超时，请使用更小的 PDF、增加 `--timeout`，或使用 Docker 确保本地依赖项可用。受密码保护或已损坏的 PDF 会被拒绝，且不会修改已有输出文件。
 
-`requirements.lock` 包含针对 Python 3.12 Linux Docker 目标记录的、完全固定的传递依赖约束。它并非哈希锁定，也不跨平台：原生 wheel 会因操作系统和 Python 版本而异。若要获得最可复现的运行环境，请使用 Docker。
-所请求的较新 `pdf2docx`、PyMuPDF 和 OCRmyPDF 版本在已配置的软件包索引中不可用，因此锁文件使用了该索引中可解析的最新版本；PyMuPDF 固定为经验证兼容的 `1.25.5` 版本。
+`requirements.lock` 包含针对 Python 3.12 Linux Docker 目标记录的、完全固定的传递依赖约束，其中包括 `ocrmypdf==16.11.0`。它并非哈希锁定，也不跨平台：原生 wheel 会因操作系统和 Python 版本而异。若要获得最可复现的运行环境，请使用 Docker。
 
 CI Docker 冒烟测试会生成合成的数字、扫描和混合 PDF，并验证英语和韩语文本在每个 DOCX 中都保持可编辑。

@@ -24,6 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t document-convert:ci .
+      - run: docker run --rm --entrypoint ocrmypdf document-convert:ci --version | grep -Fx '16.11.0'
+      - run: docker run --rm --entrypoint python document-convert:ci -m pip check
+      - run: docker run --rm --entrypoint tesseract document-convert:ci --list-langs | grep -Fx 'eng' && docker run --rm --entrypoint tesseract document-convert:ci --list-langs | grep -Fx 'kor'
       - run: mkdir -p fixtures generated
       - run: docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp --read-only --tmpfs /tmp:rw,noexec,nosuid,size=512m -v "$PWD/fixtures:/fixtures" --entrypoint python document-convert:ci scripts/create_fixtures.py /fixtures
       - run: docker run --rm document-convert:ci --help | grep -F 'dc INPUT.pdf'

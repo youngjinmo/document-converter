@@ -78,13 +78,9 @@ ensure local dependencies are available. Password-protected or damaged PDFs
 are rejected without modifying an existing output file.
 
 `requirements.lock` contains fully pinned transitive constraints captured for
-the Python 3.12 Linux Docker target. It is not hash-locked or cross-platform:
-native wheels differ by operating system and Python version. Use Docker for the
-most repeatable runtime.
-The requested newer `pdf2docx`, PyMuPDF, and OCRmyPDF versions were not
-available from the configured package index, so the lock uses the newest
-resolvable releases from that index instead; PyMuPDF is pinned to the
-empirically compatible `1.25.5` release.
+the Python 3.12 Linux Docker target, including `ocrmypdf==16.11.0`. It is not
+hash-locked or cross-platform: native wheels differ by operating system and
+Python version. Use Docker for the most repeatable runtime.
 
 The CI Docker smoke test generates synthetic digital, scanned, and mixed PDFs
 and verifies that both English and Korean text remain editable in each DOCX.

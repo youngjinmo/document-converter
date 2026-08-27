@@ -29,6 +29,26 @@ def test_ocr는_언어와_시간제한을_전달한다(pdf_file, output_file, mo
     assert received["timeout"] == 17
 
 
+def test_run_ocr는_기존_명령인자와_시간제한을_전달한다(tmp_path, monkeypatch):
+    from document_convert import converter
+
+    source = tmp_path / 'source.pdf'
+    target = tmp_path / 'target.pdf'
+    received = {}
+    monkeypatch.setattr(converter, '_validate_languages', lambda lang: None)
+    monkeypatch.setattr(converter, '_run', lambda command, timeout: received.update(command=command, timeout=timeout))
+
+    converter.run_ocr(source, target, lang='kor+eng', timeout=23)
+
+    assert received == {
+        'command': [
+            'ocrmypdf', '--skip-text', '--output-type', 'pdf', '--language', 'kor+eng',
+            str(source), str(target),
+        ],
+        'timeout': 23,
+    }
+
+
 def test_ocr_언어팩이_없으면_명확한_오류를_낸다(pdf_file, output_file, monkeypatch):
     from document_convert.converter import MissingLanguageError, convert
 
